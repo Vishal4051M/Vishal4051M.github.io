@@ -670,12 +670,17 @@
 
     @media (max-width: 480px) {
       .logo-container {
-        opacity: 0.04;
+        opacity: 0.9;
+        position: relative;
+        left: auto;
+        transform: none;
+        top: auto;
+        margin-bottom: 6px;
       }
 
       .logo {
-        width: 180px;
-        height: 180px;
+        width: 60px;
+        height: 60px;
       }
 
       .sidebar::before {
@@ -716,6 +721,16 @@
         font-size: 13px;
       }
     }
+
+    /* Fallback link styling */
+    .fallback-link {
+      display: inline-block;
+      color: #FFEB3B;
+      text-decoration: underline;
+      font-weight: 700;
+      margin-bottom: 8px;
+      word-break: break-all;
+    }
   </style>
 </head>
 <body>
@@ -728,8 +743,8 @@
       </div>
 
       <div class="tabs">
-        <button class="tab active" onclick="switchTab('send')">Send Files</button>
-        <button class="tab" onclick="switchTab('receive')">Receive Files</button>
+        <button class="tab active" onclick="switchTab('send', this)">Send Files</button>
+        <button class="tab" onclick="switchTab('receive', this)">Receive Files</button>
       </div>
     </div>
 
@@ -819,7 +834,9 @@
           </div>
         </button>
 
-        <div id="receiveErrorMessage" class="error-message"></div>
+  <div id="receiveErrorMessage" class="error-message"></div>
+  <!-- Fallback UI when fetch to device fails: explicit link/button a user can tap -->
+  <div id="receiveFallback" style="display:none; text-align:center; margin-top:12px"></div>
         <div id="receiveSuccessMessage" class="success-message"></div>
 
         <div id="filesContainer" style="display: none;">
@@ -849,19 +866,17 @@
     // Tab switching
     let currentTab = 'send';
 
-    function switchTab(tab) {
+    function switchTab(tab, el) {
       currentTab = tab;
-      
+
       // Update tab buttons
-      document.querySelectorAll('.tab').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      event.target.classList.add('active');
-      
+      document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
+      if (el && el.classList) el.classList.add('active');
+
       // Update tab content - show only selected tab
       document.getElementById('sendTab').classList.remove('active');
       document.getElementById('receiveTab').classList.remove('active');
-      
+
       if (tab === 'send') {
         document.getElementById('sendTab').classList.add('active');
       } else {
@@ -962,6 +977,7 @@
     const fetchBtn = document.getElementById('fetchBtn');
     const receiveErrorMessage = document.getElementById('receiveErrorMessage');
     const receiveSuccessMessage = document.getElementById('receiveSuccessMessage');
+  const receiveFallback = document.getElementById('receiveFallback');
     const fetchBtnText = document.getElementById('fetchBtnText');
     const fetchLoader = document.getElementById('fetchLoader');
     const filesContainer = document.getElementById('filesContainer');
@@ -1076,21 +1092,36 @@
             openBase = `http://${ip}:8080`;
           }
 
-          const openLink = `<div style="margin-top:8px;"><a href="${openBase}" target="_blank" rel="noopener noreferrer" style="color:#FFEB3B; text-decoration:underline;">Open ${openBase} in a new tab</a></div>`;
-
-          // On mobile Chromium, a visible button that uses a direct user gesture is often more reliable
-          if (isMobileChromium()) {
-            const btnHtml = `<div style="margin-top:10px;"><button class="connect-btn" onclick="openDeviceUrl('${openBase.replace(/'/g, '\\' + "'")}')">Open device (HTTP)</button></div>`;
-            receiveErrorMessage.innerHTML = escapeHtml(hint).replace(/\n/g, '<br>') + openLink + btnHtml;
-          } else {
-            // sanitize the hint text then append the open link
-            receiveErrorMessage.innerHTML = escapeHtml(hint).replace(/\n/g, '<br>') + openLink;
-          }
-
+          // Show a clear readable error message
+          receiveErrorMessage.textContent = '';
           receiveErrorMessage.style.display = 'block';
+          receiveErrorMessage.innerHTML = escapeHtml(hint).replace(/\n/g, '<br>');
           receiveSuccessMessage.style.display = 'none';
+
+          // Populate the fallback container with a clickable link and a prominent button
+          if (receiveFallback) {
+            receiveFallback.innerHTML = '';
+
+            const link = document.createElement('a');
+            link.href = openBase;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.className = 'fallback-link';
+            link.textContent = `Open ${openBase}`;
+
+            const btn = document.createElement('button');
+            btn.className = 'connect-btn';
+            btn.style.marginTop = '10px';
+            btn.innerHTML = `<div class="btn-content">Open device (HTTP)</div>`;
+            btn.addEventListener('click', () => openDeviceUrl(openBase));
+
+            receiveFallback.appendChild(link);
+            receiveFallback.appendChild(btn);
+            receiveFallback.style.display = 'block';
+          }
         } else {
           showReceiveError(hint);
+          if (receiveFallback) receiveFallback.style.display = 'none';
         }
 
         filesContainer.style.display = 'none';
