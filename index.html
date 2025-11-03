@@ -132,7 +132,13 @@
     /* MOBILE RESPONSIVE */
     @media (max-width: 1024px) {
       .logo-container {
+        /* On smaller screens keep the logo in-flow so it doesn't block other controls */
+        position: relative;
         top: 16px;
+        left: 0;
+        transform: none;
+        z-index: auto;
+        text-align: center;
       }
 
       .logo {
@@ -670,12 +676,17 @@
 
     @media (max-width: 480px) {
       .logo-container {
-        opacity: 0.04;
+        /* Ensure the logo is visible and doesn't obstruct taps */
+        position: relative;
+        opacity: 1;
+        top: 0;
+        transform: none;
+        z-index: auto;
       }
 
       .logo {
-        width: 180px;
-        height: 180px;
+        width: 40px;
+        height: 40px;
       }
 
       .sidebar::before {
@@ -728,8 +739,8 @@
       </div>
 
       <div class="tabs">
-        <button class="tab active" onclick="switchTab('send')">Send Files</button>
-        <button class="tab" onclick="switchTab('receive')">Receive Files</button>
+        <button class="tab active" data-tab="send" onclick="switchTab('send', this)">Send Files</button>
+        <button class="tab" data-tab="receive" onclick="switchTab('receive', this)">Receive Files</button>
       </div>
     </div>
 
@@ -849,19 +860,25 @@
     // Tab switching
     let currentTab = 'send';
 
-    function switchTab(tab) {
+    function switchTab(tab, targetBtn) {
       currentTab = tab;
-      
+
       // Update tab buttons
-      document.querySelectorAll('.tab').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      event.target.classList.add('active');
-      
+      const tabButtons = document.querySelectorAll('.tab');
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+
+      // If the clicked button was provided, mark it active; otherwise try to find by data-tab
+      if (targetBtn && targetBtn.classList) {
+        targetBtn.classList.add('active');
+      } else {
+        const btn = Array.from(tabButtons).find(b => b.dataset && b.dataset.tab === tab);
+        if (btn) btn.classList.add('active');
+      }
+
       // Update tab content - show only selected tab
       document.getElementById('sendTab').classList.remove('active');
       document.getElementById('receiveTab').classList.remove('active');
-      
+
       if (tab === 'send') {
         document.getElementById('sendTab').classList.add('active');
       } else {
