@@ -945,10 +945,10 @@
         if (manualHost.startsWith('http')) {
           targetBase = manualHost;
         } else {
-          targetBase = (pageIsSecure ? `https://${manualHost}` : `http://${manualHost}`);
+          targetBase = (pageIsSecure ? `http://${manualHost}` : `http://${manualHost}`);
         }
       } else {
-        targetBase = (pageIsSecure ? `https://${ip}:${defaultPort}` : `http://${ip}:${defaultPort}`);
+        targetBase = (pageIsSecure ? `http://${ip}:${defaultPort}` : `http://${ip}:${defaultPort}`);
       }
 
       // Direct navigation: avoid fetch() checks which modern browsers block when
@@ -1058,6 +1058,9 @@
       setFetchLoading(true);
       showReceiveSuccess(`Fetching files from ${ip}...`);
 
+      // Ensure manual host input is visible while attempting
+      showManualHostInput();
+
       try {
         const response = await fetch(url);
         
@@ -1079,34 +1082,18 @@
         }
       } catch (error) {
         setFetchLoading(false);
-        // Provide guidance about manual host override when hosted statically
-        let hint = `Cannot reach device at ${ip}. Make sure the device is sharing files and you're on the same network.`;
-        if (manualHostInput) hint += ' Or enter the device host (ip:port) below or add ?host=ip:port to the URL.';
 
-        // If the page is HTTPS and we attempted an HTTP request, give a mixed-content hint and a direct-open fallback
-        if (window.location.protocol === 'https:' && url && url.startsWith('http://')) {
-          hint += '\n\nBecause this page is served over HTTPS, your browser may block insecure HTTP requests (mixed content).';
+        // Always offer a direct HTTP fallback link to the decoded IP on port 8080.
+        const hint = `Cannot reach device at ${ip}. Showing a direct link you can open instead.`;
 
-          // Build an explicit HTTP base URL for navigation fallback (without /list)
-          let openBase;
-          if (manualHost) {
-            openBase = manualHost.startsWith('http') ? manualHost.replace(/\/$/, '') : `http://${manualHost}`;
-          } else {
-            openBase = `http://${ip}:8080`;
-          }
+        // Hide manual host input (per request) when fetch fails and show only the decoded link
+        hideManualHostInput();
 
-          // Build a visible fallback that includes a clickable link, an Open button
-          // (user gesture) and a copy-to-clipboard button so the user can manually
-          // open the device when fetch/navigation is blocked.
-          receiveErrorMessage.textContent = escapeHtml(hint).replace(/\n/g, '\n');
-          receiveErrorMessage.style.display = 'block';
-          receiveSuccessMessage.style.display = 'none';
-
-          // Append a programmatic direct link UI
-          appendDirectLink(receiveErrorMessage, openBase);
-        } else {
-          showReceiveError(hint);
-        }
+        const openBase = `http://${ip}:8080`;
+        receiveErrorMessage.textContent = hint;
+        receiveErrorMessage.style.display = 'block';
+        receiveSuccessMessage.style.display = 'none';
+        appendDirectLink(receiveErrorMessage, openBase);
 
         filesContainer.style.display = 'none';
       }
@@ -1335,6 +1322,27 @@
     function hideReceiveMessages() {
       receiveErrorMessage.style.display = 'none';
       receiveSuccessMessage.style.display = 'none';
+    }
+
+    // Hide/show the manual host input group (used in receive tab)
+    function hideManualHostInput() {
+      try {
+        if (!manualHostInput) return;
+        const grp = manualHostInput.closest('.input-group');
+        if (grp) grp.style.display = 'none';
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    function showManualHostInput() {
+      try {
+        if (!manualHostInput) return;
+        const grp = manualHostInput.closest('.input-group');
+        if (grp) grp.style.display = '';
+      } catch (e) {
+        // ignore
+      }
     }
 
     // Append a small UI to show a direct link with copy and open buttons.
