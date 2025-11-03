@@ -810,18 +810,7 @@
           <p class="hint">Enter the 8-digit code to fetch files</p>
         </div>
 
-        <div class="input-group">
-          <label class="label" for="manualHostInput">Direct host (optional)</label>
-          <input
-            type="text"
-            id="manualHostInput"
-            class="code-input"
-            placeholder="172.18.143.122:8080"
-            autocomplete="off"
-            spellcheck="false"
-          >
-          <p class="hint">If the site can't auto-find the device, enter the device IP and port (ip:port) or add <code>?host=ip:port</code> to the URL.</p>
-        </div>
+        <!-- manual host input removed: fallback link will be shown automatically on fetch failure -->
 
         <button id="fetchBtn" class="connect-btn">
           <div class="btn-content">
