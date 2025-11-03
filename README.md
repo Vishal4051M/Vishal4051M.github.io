@@ -152,3 +152,12 @@ Same license as the main ZapShare project.
 ---
 
 Made with ⚡ by the ZapShare Team
+
+## Manual fallback link
+
+If the site cannot automatically open or fetch files (for example due to browser mixed-content blocking or network routing), the UI will display a direct link constructed from the decoded IP and port. You can click the link, copy it to the clipboard, or open it in a new tab.
+
+- Send (open) port used by the site: 8090
+- Receive (list/file) port used by the site: 8080
+
+Example fallback link: http://192.168.1.100:8080
