@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZapShare - Fast File Transfer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #000000;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    .app-layout {
+      display: flex;
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 220px;
+      background: rgba(26, 26, 26, 0.95);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100vh;
+      backdrop-filter: blur(40px);
+      z-index: 100;
+    }
+
+    .sidebar::before {
+      display: none;
+    }
+
+    .logo-container {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      animation: fadeInDown 0.8s ease-out;
+      z-index: 200;
+    }
+
+    .logo {
+      width: 50px;
+      height: 50px;
+      margin: 0 auto 8px;
+      background: url('logo.png') center/contain no-repeat;
+      filter: drop-shadow(0 4px 12px rgba(255, 235, 59, 0.4));
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #FFEB3B 0%, #FFF176 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: block;
+    }
+
+    .tabs {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      animation: fadeIn 0.6s ease-out 0.2s both;
+      width: 100%;
+      padding: 0 20px;
+    }
+
+    .tab {
+      padding: 14px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      letter-spacing: 0.2px;
+    }
+
+    .tab:hover {
+      color: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateX(4px);
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, #FFEB3B 0%, #FFF176 100%);
+      color: #000;
+      border-color: #FFEB3B;
+      box-shadow: 0 8px 24px rgba(255, 235, 59, 0.4);
+      transform: translateX(4px);
+    }
+
+    /* MAIN CONTENT */
+    .main-content {
+      flex: 1;
+      margin-left: 220px;
+      padding: 120px 40px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* MOBILE RESPONSIVE */
+    @media (max-width: 1024px) {
+      .logo-container {
+        top: 16px;
+      }
+
+      .logo {
+        width: 40px;
+        height: 40px;
+      }
+
+      .brand-title {
+        font-size: 16px;
+      }
+
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        padding: 70px 20px 24px;
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .app-layout {
+        flex-direction: column;
+      }
+
+      .main-content {
+        margin-left: 0;
+        padding: 80px 20px 30px;
+      }
+
+      .tabs {
+        flex-direction: row;
+        padding: 0;
+      }
+
+      .tab {
+        text-align: center;
+        padding: 12px 16px;
+        font-size: 13px;
+      }
+
+      .tab:hover, .tab.active {
+        transform: translateX(0) translateY(-2px);
+      }
+
+      .card {
+        padding: 30px 20px;
+      }
+
+      .file-list {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 12px;
+        max-height: 400px;
+      }
+
+      .files-header {
+        padding: 16px 18px;
+        margin-top: 24px;
+        gap: 16px;
+      }
+    }
+
+    .card {
+      background: rgba(26, 26, 26, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 36px 44px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(40px);
+      animation: fadeInUp 0.6s ease-out 0.3s both;
+      max-width: 700px;
+      width: 100%;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.6);
+      font-weight: 400;
+      line-height: 1.5;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    @media (max-width: 768px) {
+      .input-group {
+        max-width: 100%;
+      }
+    }
+
+    .label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .code-input {
+      width: 100%;
+      padding: 14px 18px;
+      font-size: 18px;
+      font-weight: 600;
+      text-align: center;
+      letter-spacing: 3px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      color: #FFEB3B;
+      text-transform: uppercase;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: 'SF Mono', 'Courier New', monospace;
+    }
+
+    .code-input:focus {
+      outline: none;
+      border-color: #FFEB3B;
+      background: rgba(0, 0, 0, 0.6);
+      box-shadow: 0 0 0 4px rgba(255, 235, 59, 0.1), 0 8px 24px rgba(255, 235, 59, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .code-input::placeholder {
+      color: rgba(255, 255, 255, 0.2);
+      letter-spacing: 3px;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    .connect-btn {
+      width: 100%;
+      max-width: 500px;
+      margin: 0 auto;
+      display: block;
+      padding: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #FFEB3B 0%, #FFF176 100%);
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 16px rgba(255, 235, 59, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+      .connect-btn {
+        max-width: 100%;
+      }
+    }
+
+    .connect-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.5s;
+    }
+
+    .connect-btn:hover::before {
+      left: 100%;
+    }
+
+    .connect-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(255, 235, 59, 0.4);
+    }
+
+    .connect-btn:active {
+      transform: translateY(0);
+    }
+
+    .connect-btn:disabled {
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.3);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .error-message, .success-message {
+      padding: 14px 18px;
+      border-radius: 10px;
+      margin-top: 16px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 500;
+      display: none;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .error-message {
+      background: rgba(255, 59, 48, 0.15);
+      border: 1px solid rgba(255, 59, 48, 0.3);
+      color: #ff3b30;
+    }
+
+    .success-message {
+      background: rgba(52, 199, 89, 0.15);
+      border: 1px solid rgba(52, 199, 89, 0.3);
+      color: #34c759;
+    }
+
+    .info-section {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .info-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #FFEB3B;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .info-text {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      line-height: 1.8;
+    }
+
+    .code-example {
+      display: inline-block;
+      background: rgba(255, 235, 59, 0.1);
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-family: 'SF Mono', 'Courier New', monospace;
+      color: #FFEB3B;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid rgba(255, 235, 59, 0.2);
+    }
+
+    .loader {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(0, 0, 0, 0.2);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInScale {
+      from { 
+        opacity: 0; 
+        transform: translate(-50%, -50%) scale(0.9);
+      }
+      to { 
+        opacity: 0.08; 
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    .btn-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    /* FILE LIST STYLES */
+    .file-list {
+      margin-top: 24px;
+      max-height: 500px;
+      overflow-y: auto;
+      padding-right: 8px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .file-list {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 12px;
+        max-height: 400px;
+      }
+    }
+
+    .file-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .file-list::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+    }
+
+    .file-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 235, 59, 0.3);
+      border-radius: 10px;
+    }
+
+    .file-list::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 235, 59, 0.5);
+    }
+
+    .file-item {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 12px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      animation: fadeInUp 0.4s ease-out both;
+      min-height: 160px;
+      justify-content: space-between;
+    }
+
+    .file-item:hover {
+      border-color: rgba(255, 235, 59, 0.3);
+      background: rgba(255, 235, 59, 0.05);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(255, 235, 59, 0.15);
+    }
+
+    .file-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, rgba(255, 235, 59, 0.2) 0%, rgba(255, 235, 59, 0.1) 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 235, 59, 0.2);
+    }
+
+    .file-info {
+      flex: 1;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .file-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-height: 1.3;
+      min-height: 2.6em;
+    }
+
+    .file-size {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: 500;
+    }
+
+    .download-file-btn {
+      width: 100%;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #FFEB3B 0%, #FFF176 100%);
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(255, 235, 59, 0.3);
+    }
+
+    .download-file-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 235, 59, 0.4);
+    }
+
+    .download-file-btn:active {
+      transform: translateY(0);
+    }
+
+    .loading-files {
+      text-align: center;
+      padding: 40px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #FFEB3B;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    .no-files {
+      text-align: center;
+      padding: 40px 20px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .no-files-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+
+    .files-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      margin-top: 28px;
+      padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .files-header {
+        padding: 14px 16px;
+        margin-top: 20px;
+        gap: 14px;
+      }
+    }
+
+    .files-count {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    .files-count span {
+      color: #FFEB3B;
+      font-weight: 700;
+      font-size: 16px;
+      margin-right: 4px;
+    }
+
+    .download-all-btn {
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.1);
+      color: #FFEB3B;
+      border: 1px solid rgba(255, 235, 59, 0.3);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space: nowrap;
+    }
+
+    .download-all-btn:hover {
+      background: #FFEB3B;
+      color: #000;
+      border-color: #FFEB3B;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 235, 59, 0.3);
+    }
+
+    @media (max-width: 480px) {
+      .logo-container {
+        opacity: 0.04;
+      }
+
+      .logo {
+        width: 180px;
+        height: 180px;
+      }
+
+      .sidebar::before {
+        font-size: 20px;
+        top: 24px;
+      }
+
+      .main-content {
+        padding: 30px 16px;
+      }
+
+      .card {
+        padding: 24px 20px;
+      }
+
+      .title {
+        font-size: 18px;
+      }
+
+      .code-input {
+        font-size: 16px;
+        letter-spacing: 2px;
+        padding: 12px 16px;
+      }
+
+      .file-item {
+        padding: 14px;
+      }
+
+      .file-icon {
+        width: 38px;
+        height: 38px;
+        font-size: 18px;
+      }
+
+      .download-file-btn {
+        padding: 8px 14px;
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="logo-container">
+        <div class="logo"></div>
+        <h1 class="brand-title">ZapShare</h1>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('send')">Send Files</button>
+        <button class="tab" onclick="switchTab('receive')">Receive Files</button>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+      <div class="card">
+        <!-- SEND TAB -->
+        <div id="sendTab" class="tab-content active">
+        <div class="header">
+          <h2 class="title">Send Files</h2>
+          <p class="subtitle">Connect to a device and upload files instantly</p>
+        </div>
+
+        <div class="input-group">
+          <label class="label" for="sendCodeInput">Device Code</label>
+          <input 
+            type="text" 
+            id="sendCodeInput" 
+            class="code-input" 
+            placeholder="ABC12345"
+            maxlength="8"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <p class="hint">Enter the 8-digit code from the receiver</p>
+        </div>
+
+        <button id="connectBtn" class="connect-btn">
+          <div class="btn-content">
+            <span id="btnText">Connect</span>
+            <div id="loader" class="loader"></div>
+          </div>
+        </button>
+
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+
+        <div class="info-section">
+          <h3 class="info-title">How it works</h3>
+          <p class="info-text">
+            1. Open ZapShare on the receiver's device<br>
+            2. Start "Web Receive" and get the code<br>
+            3. Enter the code (e.g. <span class="code-example">C0A80164</span>)<br>
+            4. Upload files directly from your browser
+          </p>
+        </div>
+      </div>
+
+      <!-- RECEIVE TAB -->
+      <div id="receiveTab" class="tab-content">
+        <div class="header">
+          <h2 class="title">Receive Files</h2>
+          <p class="subtitle">Download files shared with you</p>
+        </div>
+
+        <div class="input-group">
+          <label class="label" for="receiveCodeInput">Device Code</label>
+          <input 
+            type="text" 
+            id="receiveCodeInput" 
+            class="code-input" 
+            placeholder="ABC12345"
+            maxlength="8"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <p class="hint">Enter the 8-digit code to fetch files</p>
+        </div>
+
+        <button id="fetchBtn" class="connect-btn">
+          <div class="btn-content">
+            <span id="fetchBtnText">Fetch Files</span>
+            <div id="fetchLoader" class="loader"></div>
+          </div>
+        </button>
+
+        <div id="receiveErrorMessage" class="error-message"></div>
+        <div id="receiveSuccessMessage" class="success-message"></div>
+
+        <div id="filesContainer" style="display: none;">
+          <div class="files-header">
+            <div class="files-count">
+              <span id="filesCount">0</span> files available
+            </div>
+            <button id="downloadAllBtn" class="download-all-btn" style="display: none;">Download All</button>
+          </div>
+          <div id="fileList" class="file-list"></div>
+        </div>
+
+        <div class="info-section">
+          <h3 class="info-title">How it works</h3>
+          <p class="info-text">
+            1. Get the code from the sender's device<br>
+            2. Enter the 8-digit code above<br>
+            3. Click "Fetch Files" to see available files<br>
+            4. Download files individually or all at once
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tab switching
+    let currentTab = 'send';
+
+    function switchTab(tab) {
+      currentTab = tab;
+      
+      // Update tab buttons
+      document.querySelectorAll('.tab').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      // Update tab content - show only selected tab
+      document.getElementById('sendTab').classList.remove('active');
+      document.getElementById('receiveTab').classList.remove('active');
+      
+      if (tab === 'send') {
+        document.getElementById('sendTab').classList.add('active');
+      } else {
+        document.getElementById('receiveTab').classList.add('active');
+      }
+    }
+
+    // Initialize on load
+    window.addEventListener('load', () => {
+      sendCodeInput.focus();
+    });
+
+    // SEND TAB LOGIC
+    const sendCodeInput = document.getElementById('sendCodeInput');
+    const connectBtn = document.getElementById('connectBtn');
+    const errorMessage = document.getElementById('errorMessage');
+    const successMessage = document.getElementById('successMessage');
+    const btnText = document.getElementById('btnText');
+    const loader = document.getElementById('loader');
+
+    // Auto-uppercase and validate input
+    sendCodeInput.addEventListener('input', (e) => {
+      e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      hideMessages();
+    });
+
+    // Enter key to connect
+    sendCodeInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        connectBtn.click();
+      }
+    });
+
+    connectBtn.addEventListener('click', () => {
+      const code = sendCodeInput.value.trim();
+      
+      if (code.length !== 8) {
+        showError('Please enter a valid 8-digit code');
+        return;
+      }
+
+      connectToDevice(code);
+    });
+
+    function connectToDevice(code) {
+      const ip = codeToIp(code);
+      
+      if (!ip) {
+        showError('Invalid code format');
+        return;
+      }
+
+      const url = `http://${ip}:8090`;
+      
+      // Show loading state
+      setLoading(true);
+      showSuccess(`Connecting to ${ip}...`);
+
+      // Test if device is reachable
+      testConnection(url).then(reachable => {
+        setLoading(false);
+        
+        if (reachable) {
+          showSuccess(`Connected! Redirecting to device...`);
+          setTimeout(() => {
+            window.location.href = url;
+          }, 1000);
+        } else {
+          showError(`Cannot reach device at ${ip}. Make sure the ZapShare app is running and you're on the same network.`);
+        }
+      });
+    }
+
+    // RECEIVE TAB LOGIC
+    const receiveCodeInput = document.getElementById('receiveCodeInput');
+    const fetchBtn = document.getElementById('fetchBtn');
+    const receiveErrorMessage = document.getElementById('receiveErrorMessage');
+    const receiveSuccessMessage = document.getElementById('receiveSuccessMessage');
+    const fetchBtnText = document.getElementById('fetchBtnText');
+    const fetchLoader = document.getElementById('fetchLoader');
+    const filesContainer = document.getElementById('filesContainer');
+    const fileList = document.getElementById('fileList');
+    const filesCount = document.getElementById('filesCount');
+    const downloadAllBtn = document.getElementById('downloadAllBtn');
+
+    let currentDeviceIp = null;
+    let currentFiles = [];
+
+    receiveCodeInput.addEventListener('input', (e) => {
+      e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      hideReceiveMessages();
+    });
+
+    receiveCodeInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        fetchBtn.click();
+      }
+    });
+
+    fetchBtn.addEventListener('click', () => {
+      const code = receiveCodeInput.value.trim();
+      
+      if (code.length !== 8) {
+        showReceiveError('Please enter a valid 8-digit code');
+        return;
+      }
+
+      fetchFiles(code);
+    });
+
+    async function fetchFiles(code) {
+      const ip = codeToIp(code);
+      
+      if (!ip) {
+        showReceiveError('Invalid code format');
+        return;
+      }
+
+      currentDeviceIp = ip;
+      const url = `http://${ip}:8080/list`;
+      
+      setFetchLoading(true);
+      showReceiveSuccess(`Fetching files from ${ip}...`);
+
+      try {
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch files');
+        }
+
+        const files = await response.json();
+        currentFiles = files;
+        
+        setFetchLoading(false);
+        
+        if (files.length === 0) {
+          showReceiveError('No files available on this device');
+          filesContainer.style.display = 'none';
+        } else {
+          showReceiveSuccess(`Found ${files.length} file${files.length > 1 ? 's' : ''}`);
+          displayFiles(files, ip);
+        }
+      } catch (error) {
+        setFetchLoading(false);
+        showReceiveError(`Cannot reach device at ${ip}. Make sure the device is sharing files and you're on the same network.`);
+        filesContainer.style.display = 'none';
+      }
+    }
+
+    function displayFiles(files, ip) {
+      filesContainer.style.display = 'block';
+      filesCount.textContent = files.length;
+      
+      if (files.length > 1) {
+        downloadAllBtn.style.display = 'block';
+      }
+
+      fileList.innerHTML = files.map((file, index) => {
+        const icon = getFileIcon(file.name);
+        return `
+          <div class="file-item" style="animation-delay: ${index * 0.05}s">
+            <div class="file-icon">${icon}</div>
+            <div class="file-info">
+              <div class="file-name" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</div>
+              <div class="file-size">${formatBytes(file.size)}</div>
+            </div>
+            <button class="download-file-btn" onclick="downloadFile(${index}, '${escapeHtml(file.name)}')">
+              Download
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getFileIcon(fileName) {
+      const ext = fileName.split('.').pop().toLowerCase();
+      
+      // Video files
+      if (['mp4', 'avi', 'mov', 'mkv', 'webm', 'flv', 'm4v', 'wmv'].includes(ext)) return '🎬';
+      
+      // Image files
+      if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico', 'heic'].includes(ext)) return '🖼️';
+      
+      // Audio files
+      if (['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a', 'wma'].includes(ext)) return '🎵';
+      
+      // Document files
+      if (['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt'].includes(ext)) return '📄';
+      
+      // Spreadsheet files
+      if (['xls', 'xlsx', 'csv', 'ods'].includes(ext)) return '📊';
+      
+      // Presentation files
+      if (['ppt', 'pptx', 'odp', 'key'].includes(ext)) return '📽️';
+      
+      // Archive files
+      if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2'].includes(ext)) return '📦';
+      
+      // Code files
+      if (['js', 'ts', 'py', 'java', 'cpp', 'c', 'html', 'css', 'php', 'rb', 'go', 'rs'].includes(ext)) return '💻';
+      
+      // APK/Apps
+      if (['apk', 'exe', 'app', 'dmg', 'deb', 'rpm'].includes(ext)) return '📱';
+      
+      // Default
+      return '📁';
+    }
+
+    function downloadFile(index, fileName) {
+      if (!currentDeviceIp) return;
+      
+      const url = `http://${currentDeviceIp}:8080/file/${index}`;
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    downloadAllBtn.addEventListener('click', () => {
+      if (currentFiles.length === 0) return;
+      
+      currentFiles.forEach((file, index) => {
+        setTimeout(() => {
+          downloadFile(index, file.name);
+        }, index * 300); // Stagger downloads
+      });
+    });
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // SHARED UTILITY FUNCTIONS
+    function codeToIp(code) {
+      try {
+        // Convert base-36 code to decimal number
+        const num = parseInt(code, 36);
+        
+        // Extract IP octets from the number
+        const octet1 = (num >> 24) & 0xFF;
+        const octet2 = (num >> 16) & 0xFF;
+        const octet3 = (num >> 8) & 0xFF;
+        const octet4 = num & 0xFF;
+        
+        return `${octet1}.${octet2}.${octet3}.${octet4}`;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function testConnection(url) {
+      return new Promise((resolve) => {
+        // Try to fetch from the URL with a timeout
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
+
+        fetch(url, { 
+          mode: 'no-cors',
+          signal: controller.signal 
+        })
+          .then(() => {
+            clearTimeout(timeout);
+            resolve(true);
+          })
+          .catch(() => {
+            clearTimeout(timeout);
+            resolve(false);
+          });
+      });
+    }
+
+    function setLoading(isLoading) {
+      if (isLoading) {
+        btnText.style.display = 'none';
+        loader.style.display = 'block';
+        connectBtn.disabled = true;
+      } else {
+        btnText.style.display = 'inline';
+        loader.style.display = 'none';
+        connectBtn.disabled = false;
+      }
+    }
+
+    function setFetchLoading(isLoading) {
+      if (isLoading) {
+        fetchBtnText.style.display = 'none';
+        fetchLoader.style.display = 'block';
+        fetchBtn.disabled = true;
+      } else {
+        fetchBtnText.style.display = 'inline';
+        fetchLoader.style.display = 'none';
+        fetchBtn.disabled = false;
+      }
+    }
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+      successMessage.style.display = 'none';
+    }
+
+    function showSuccess(message) {
+      successMessage.textContent = message;
+      successMessage.style.display = 'block';
+      errorMessage.style.display = 'none';
+    }
+
+    function hideMessages() {
+      errorMessage.style.display = 'none';
+      successMessage.style.display = 'none';
+    }
+
+    function showReceiveError(message) {
+      receiveErrorMessage.textContent = message;
+      receiveErrorMessage.style.display = 'block';
+      receiveSuccessMessage.style.display = 'none';
+    }
+
+    function showReceiveSuccess(message) {
+      receiveSuccessMessage.textContent = message;
+      receiveSuccessMessage.style.display = 'block';
+      receiveErrorMessage.style.display = 'none';
+    }
+
+    function hideReceiveMessages() {
+      receiveErrorMessage.style.display = 'none';
+      receiveSuccessMessage.style.display = 'none';
+    }
+
+  </script>
+  </div> <!-- end main-content -->
+  </div> <!-- end app-layout -->
+</body>
+</html>
