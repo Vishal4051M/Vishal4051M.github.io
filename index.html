@@ -1148,17 +1148,54 @@
     }
 
     function downloadFile(index, fileName) {
-      if (!currentDeviceIp && !(manualHostInput && manualHostInput.value.trim())) return;
-      const manualHost = (manualHostInput && manualHostInput.value.trim()) ? manualHostInput.value.trim() : null;
+      if (!currentDeviceIp && !(manualHostInput && manualHostInput.value && manualHostInput.value.trim())) return;
+      const manualHost = (manualHostInput && manualHostInput.value && manualHostInput.value.trim()) ? manualHostInput.value.trim() : null;
       const pageIsSecure = window.location.protocol === 'https:';
       const base = manualHost ? (manualHost.startsWith('http') ? manualHost : `${pageIsSecure ? `https://${manualHost}` : `http://${manualHost}`}`) : `${pageIsSecure ? `https://${currentDeviceIp}:8080` : `http://${currentDeviceIp}:8080`}`;
-      const url = `${base.replace(/\/$/, '')}/file/${index}`;
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+
+      const cleanedBase = base.replace(/\/$/, '');
+      const candidates = [`${cleanedBase}/file/${index}`, `${cleanedBase}/${index}`];
+
+      // Try to HEAD the candidate URLs to see which one exists. If fetch is blocked
+      // (mixed content/CORS) fall back to user-initiated anchor click using the
+      // simpler path (/<index>) which most devices use.
+      (async () => {
+        try {
+          for (const u of candidates) {
+            try {
+              const resp = await fetch(u, { method: 'HEAD' });
+              if (resp && resp.ok) {
+                const link = document.createElement('a');
+                link.href = u;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                return;
+              }
+            } catch (e) {
+              // HEAD failed for this candidate — try next. If fetch throws due to
+              // mixed-content or CORS we'll catch outside the loop and fall back.
+            }
+          }
+
+          // If we reach here none of the HEAD checks returned ok. Try to open the
+          // simpler URL via a user gesture (anchor click). This works around
+          // mixed-content blocking because it's a navigation initiated by the user.
+          const fallback = candidates[candidates.length - 1];
+          const a = document.createElement('a');
+          a.href = fallback;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        } catch (outerErr) {
+          // As a last resort open the fallback in a new tab/window
+          const fallback = candidates[candidates.length - 1];
+          openDeviceUrl(fallback);
+        }
+      })();
     }
 
     // Helper to open the device URL in a new tab/window (user gesture)
