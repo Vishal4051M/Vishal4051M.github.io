@@ -1044,8 +1044,11 @@
         url = `${pageIsSecure ? `https://${ip}:8080` : `http://${ip}:8080`}/list`;
       }
 
-      setFetchLoading(true);
-      showReceiveSuccess(`Fetching files from ${ip}...`);
+  setFetchLoading(true);
+  showReceiveSuccess(`Fetching files from ${ip}...`);
+
+  // Debug: log the URL we're about to fetch so failures can be diagnosed
+  console.log('[zapshare] fetchFiles url=', url, 'manualHost=', manualHost);
 
       // Ensure manual host input is visible while attempting
       showManualHostInput();
@@ -1071,6 +1074,7 @@
         }
       } catch (error) {
         setFetchLoading(false);
+        console.error('[zapshare] fetchFiles failed for', url, error);
 
         // Always offer a direct HTTP fallback link to the decoded IP on port 8080.
         const hint = `Cannot reach device at ${ip}. Showing a direct link you can open instead.`;
@@ -1079,7 +1083,9 @@
         hideManualHostInput();
 
         const openBase = `http://${ip}:8080`;
-        receiveErrorMessage.textContent = hint;
+
+        // Show the hint plus the raw error so the user/dev can diagnose
+        receiveErrorMessage.innerHTML = `${escapeHtml(hint)}<br><small style="opacity:0.8; display:block; margin-top:8px;">Attempted: ${escapeHtml(url)}<br>Error: ${escapeHtml(error && error.toString ? error.toString() : String(error))}</small>`;
         receiveErrorMessage.style.display = 'block';
         receiveSuccessMessage.style.display = 'none';
         appendDirectLink(receiveErrorMessage, openBase);
