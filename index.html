@@ -1034,14 +1034,15 @@
       const pageIsSecure = window.location.protocol === 'https:';
       let url;
       if (manualHost) {
-        // If user provided a protocol, use it; otherwise pick based on page protocol
+        // If user provided a protocol, use it; otherwise default to http (local device)
         if (manualHost.startsWith('http')) {
           url = `${manualHost.replace(/\/$/, '')}/list`;
         } else {
-          url = `${pageIsSecure ? `https://${manualHost}` : `http://${manualHost}`}/list`;
+          url = `http://${manualHost}/list`;
         }
       } else {
-        url = `${pageIsSecure ? `https://${ip}:8080` : `http://${ip}:8080`}/list`;
+        // Always use http for local device endpoints (they typically don't serve https)
+        url = `http://${ip}:8080/list`;
       }
 
   setFetchLoading(true);
@@ -1156,8 +1157,8 @@
     function downloadFile(index, fileName) {
       if (!currentDeviceIp && !(manualHostInput && manualHostInput.value && manualHostInput.value.trim())) return;
       const manualHost = (manualHostInput && manualHostInput.value && manualHostInput.value.trim()) ? manualHostInput.value.trim() : null;
-      const pageIsSecure = window.location.protocol === 'https:';
-      const base = manualHost ? (manualHost.startsWith('http') ? manualHost : `${pageIsSecure ? `https://${manualHost}` : `http://${manualHost}`}`) : `${pageIsSecure ? `https://${currentDeviceIp}:8080` : `http://${currentDeviceIp}:8080`}`;
+  // Always use http for device file URLs (devices usually serve plain HTTP)
+  const base = manualHost ? (manualHost.startsWith('http') ? manualHost : `http://${manualHost}`) : `http://${currentDeviceIp}:8080`;
 
       const cleanedBase = base.replace(/\/$/, '');
       const candidates = [`${cleanedBase}/file/${index}`, `${cleanedBase}/${index}`];
